@@ -1,4 +1,8 @@
-on: [push, pull_request]
+# Branch pushes only: a version tag is already tested as the commit on its branch.
+on:
+  push:
+    branches: ['**']
+  pull_request:
 name: articleTimeline
 jobs:
   articleTimeline:

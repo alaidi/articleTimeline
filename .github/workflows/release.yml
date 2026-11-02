@@ -34,10 +34,11 @@ jobs:
           fi
           git archive --format=tar.gz --prefix="$NAME/" -o "$NAME-$VERSION.tar.gz" HEAD
           echo "ARCHIVE=$NAME-$VERSION.tar.gz" >> "$GITHUB_ENV"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
           tar tzf "$NAME-$VERSION.tar.gz"
 
       - name: Attach package to the Release
         uses: softprops/action-gh-release@v2
         with:
-          name: Article Timeline ${{ github.ref_name }}
+          name: Article Timeline ${{ env.VERSION }}
           files: ${{ env.ARCHIVE }}
