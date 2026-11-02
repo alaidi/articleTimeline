@@ -36,7 +36,7 @@ class ArticleTimelinePlugin extends GenericPlugin
     public const POSITION_SIDEBAR = 'sidebar';
 
     public const DEFAULT_POSITION = self::POSITION_MAIN;
-    public const DEFAULT_DATE_FORMAT = 'M. j, Y';
+    public const DEFAULT_DATE_FORMAT = 'M.j, Y';
 
     /**
      * @copydoc Plugin::register()
@@ -176,7 +176,6 @@ class ArticleTimelinePlugin extends GenericPlugin
         ));
 
         // No theme hook sits above the abstract, so move the timeline there in the final page output.
-        // shortcut: matches the first <section> whose class contains "abstract" (default + individualizeTheme); a theme with other markup needs its own pattern
         $publication = $templateMgr->getTemplateVars('publication');
         if ($position === self::POSITION_MAIN && $publication && $publication->getLocalizedData('abstract')) {
             $inserted = false;
@@ -184,9 +183,9 @@ class ArticleTimelinePlugin extends GenericPlugin
                 if ($inserted) {
                     return $source;
                 }
-                $result = preg_replace('/<section class="[^"]*\babstract\b[^"]*">/', $html . '$0', $source, 1, $count);
-                $inserted = $count > 0;
-                return $result;
+                $result = self::insertBeforeAbstract($source, $html);
+                $inserted = $result !== null;
+                return $result ?? $source;
             });
             return false;
         }
@@ -194,6 +193,25 @@ class ArticleTimelinePlugin extends GenericPlugin
         $output .= $html;
 
         return false;
+    }
+
+    /**
+     * Insert $html right before the first abstract section of $source.
+     *
+     * shortcut: matches the first <section> whose class contains "abstract" (default + individualizeTheme); a theme with other markup needs its own pattern
+     *
+     * @return ?string the new page html, or null when no abstract section was found
+     */
+    public static function insertBeforeAbstract(string $source, string $html): ?string
+    {
+        $result = preg_replace_callback(
+            '/<section class="[^"]*\babstract\b[^"]*">/',
+            fn (array $match) => $html . $match[0],
+            $source,
+            1,
+            $count
+        );
+        return $count > 0 ? $result : null;
     }
 
     /**

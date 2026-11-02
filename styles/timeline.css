@@ -6,22 +6,28 @@
  */
 
 .article-timeline-main {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.25em 0;
-	margin: 1rem 0;
 	font-size: 0.9em;
 }
 
+/* overflow clips the separator of whichever entry starts a line, so a wrapped row never begins or ends with "·" */
+.article-timeline-main .article-timeline-entries {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25em 1.5em;
+	overflow: hidden;
+}
+
 .article-timeline-main .article-timeline-entry {
+	position: relative;
 	display: inline-flex;
 	align-items: baseline;
 	white-space: nowrap;
 }
 
-.article-timeline-main .article-timeline-entry:not(:last-child)::after {
+.article-timeline-main .article-timeline-entry::before {
 	content: "·";
-	margin: 0 0.5em;
+	position: absolute;
+	inset-inline-start: -0.95em;
 	opacity: 0.6;
 }
 
