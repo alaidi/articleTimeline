@@ -1,0 +1,43 @@
+name: Package plugin
+
+# When a tag is pushed (e.g. `git tag v1.1.0.0 && git push --tags`), build the
+# installable plugin package and attach it to the matching GitHub Release,
+# creating the Release when it does not exist yet.
+#
+# The tarball unpacks as `articleTimeline/…`, so it can be installed straight
+# through OJS "Upload A New Plugin". Files marked export-ignore in
+# .gitattributes (tests, CI, cypress) are left out.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build installable tarball
+        run: |
+          NAME="${{ github.event.repository.name }}"
+          VERSION="${GITHUB_REF_NAME#v}"
+          RELEASE=$(grep -oP '(?<=<release>)[^<]+' version.xml)
+          if [ "$VERSION" != "$RELEASE" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match <release>${RELEASE}</release> in version.xml." >&2
+            exit 1
+          fi
+          git archive --format=tar.gz --prefix="$NAME/" -o "$NAME-$VERSION.tar.gz" HEAD
+          echo "ARCHIVE=$NAME-$VERSION.tar.gz" >> "$GITHUB_ENV"
+          tar tzf "$NAME-$VERSION.tar.gz"
+
+      - name: Attach package to the Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Article Timeline ${{ github.ref_name }}
+          files: ${{ env.ARCHIVE }}

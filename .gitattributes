@@ -1,4 +1,7 @@
-tests/ export-ignore
-phpunit.xml.dist export-ignore
+.github export-ignore
 .gitignore export-ignore
 .gitattributes export-ignore
+cypress export-ignore
+tests export-ignore
+CONTRIBUTING.md export-ignore
+docs export-ignore

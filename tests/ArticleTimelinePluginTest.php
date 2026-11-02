@@ -6,16 +6,44 @@
  * Copyright (c) 2026 Abdul Hadi Alaidi
  * Distributed under the GNU GPL v3. For full terms see the file docs/COPYING.
  *
- * @brief Placement of the timeline above the abstract, and the default date format.
+ * @class ArticleTimelinePluginTest
+ *
+ * @brief Placement of the timeline above the abstract, the stored position,
+ *        and the default date format.
  */
+
+namespace APP\plugins\generic\articleTimeline\tests;
 
 use APP\plugins\generic\articleTimeline\ArticleTimelinePlugin;
 use Carbon\Carbon;
-use PHPUnit\Framework\TestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PKP\tests\PKPTestCase;
 
-final class ArticleTimelinePluginTest extends TestCase
+#[CoversClass(ArticleTimelinePlugin::class)]
+class ArticleTimelinePluginTest extends PKPTestCase
 {
     private const TIMELINE = '<div class="item article-timeline article-timeline-main">T</div>';
+
+    /** A plugin whose stored position is $stored instead of the database's. */
+    private function plugin(mixed $stored): ArticleTimelinePlugin
+    {
+        return new class ($stored) extends ArticleTimelinePlugin {
+            public function __construct(private mixed $stored)
+            {
+                parent::__construct();
+            }
+
+            public function getSetting($contextId, $name)
+            {
+                return $name === self::SETTING_POSITION ? $this->stored : null;
+            }
+
+            public function position(): string
+            {
+                return $this->getPosition(1);
+            }
+        };
+    }
 
     public function testInsertsBeforeDefaultThemeAbstract(): void
     {
@@ -57,6 +85,36 @@ final class ArticleTimelinePluginTest extends TestCase
             $html . '<section class="item abstract">A</section>',
             ArticleTimelinePlugin::insertBeforeAbstract('<section class="item abstract">A</section>', $html)
         );
+    }
+
+    public function testMovesHookOutputAboveAbstract(): void
+    {
+        $page = '<section class="item abstract">A</section>' . self::TIMELINE . '<section class="item references">R</section>';
+
+        $this->assertSame(
+            self::TIMELINE . '<section class="item abstract">A</section><section class="item references">R</section>',
+            ArticleTimelinePlugin::moveAboveAbstract($page, self::TIMELINE)
+        );
+    }
+
+    public function testMoveLeavesPageAloneWithoutAbstractOrTimeline(): void
+    {
+        $this->assertNull(ArticleTimelinePlugin::moveAboveAbstract('<section class="item references">R</section>' . self::TIMELINE, self::TIMELINE));
+        $this->assertNull(ArticleTimelinePlugin::moveAboveAbstract('<section class="item abstract">A</section>', self::TIMELINE));
+    }
+
+    public function testStoredPositionsAreKept(): void
+    {
+        foreach (ArticleTimelinePlugin::POSITIONS as $position) {
+            $this->assertSame($position, $this->plugin($position)->position());
+        }
+    }
+
+    public function testUnknownOrMissingPositionFallsBackToTheDefault(): void
+    {
+        foreach ([null, '', 'top', 1] as $stored) {
+            $this->assertSame(ArticleTimelinePlugin::DEFAULT_POSITION, $this->plugin($stored)->position());
+        }
     }
 
     /**
