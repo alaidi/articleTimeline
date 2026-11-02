@@ -32,8 +32,11 @@ class ArticleTimelinePlugin extends GenericPlugin
     public const SETTING_POSITION = 'position';
     public const SETTING_DATE_FORMAT = 'dateFormat';
 
+    // 'main' (above the abstract) keeps its stored value from 1.0.x so saved settings don't change
     public const POSITION_MAIN = 'main';
+    public const POSITION_MAIN_BELOW = 'mainBelow';
     public const POSITION_SIDEBAR = 'sidebar';
+    public const POSITIONS = [self::POSITION_MAIN, self::POSITION_MAIN_BELOW, self::POSITION_SIDEBAR];
 
     public const DEFAULT_POSITION = self::POSITION_MAIN;
     public const DEFAULT_DATE_FORMAT = 'M.j, Y';
@@ -154,7 +157,7 @@ class ArticleTimelinePlugin extends GenericPlugin
 
         $context = $request->getContext();
         $position = $this->getPosition($context->getId());
-        if ($position !== ($hookName === 'Templates::Article::Main' ? self::POSITION_MAIN : self::POSITION_SIDEBAR)) {
+        if (($position === self::POSITION_SIDEBAR) !== ($hookName === 'Templates::Article::Details')) {
             return false;
         }
 
@@ -172,27 +175,41 @@ class ArticleTimelinePlugin extends GenericPlugin
         ]);
 
         $html = $templateMgr->fetch($this->getTemplateResource(
-            $position === self::POSITION_MAIN ? 'timelineMain.tpl' : 'timelineSidebar.tpl'
+            $position === self::POSITION_SIDEBAR ? 'timelineSidebar.tpl' : 'timelineMain.tpl'
         ));
 
-        // No theme hook sits above the abstract, so move the timeline there in the final page output.
-        $publication = $templateMgr->getTemplateVars('publication');
-        if ($position === self::POSITION_MAIN && $publication && $publication->getLocalizedData('abstract')) {
-            $inserted = false;
-            $templateMgr->registerFilter('output', function (string $source) use ($html, &$inserted): string {
-                if ($inserted) {
-                    return $source;
-                }
-                $result = self::insertBeforeAbstract($source, $html);
-                $inserted = $result !== null;
-                return $result ?? $source;
-            });
-            return false;
-        }
-
+        // Templates::Article::Main sits right under the abstract
         $output .= $html;
 
+        // No theme hook sits above the abstract, so move the timeline there in the final page output.
+        // Pages without an abstract section keep it under, where the hook put it.
+        if ($position === self::POSITION_MAIN) {
+            $moved = false;
+            $templateMgr->registerFilter('output', function (string $source) use ($html, &$moved): string {
+                if ($moved) {
+                    return $source;
+                }
+                $result = self::moveAboveAbstract($source, $html);
+                $moved = $result !== null;
+                return $result ?? $source;
+            });
+        }
+
         return false;
+    }
+
+    /**
+     * Move the first copy of $html in $source to right before the first abstract section.
+     *
+     * @return ?string the new page html, or null when $source lacks $html or an abstract section
+     */
+    public static function moveAboveAbstract(string $source, string $html): ?string
+    {
+        $at = strpos($source, $html);
+        if ($at === false) {
+            return null;
+        }
+        return self::insertBeforeAbstract(substr_replace($source, '', $at, strlen($html)), $html);
     }
 
     /**
@@ -283,7 +300,7 @@ class ArticleTimelinePlugin extends GenericPlugin
     protected function getPosition(int $contextId): string
     {
         $position = $this->getSetting($contextId, self::SETTING_POSITION);
-        return is_string($position) && in_array($position, [self::POSITION_MAIN, self::POSITION_SIDEBAR], true)
+        return is_string($position) && in_array($position, self::POSITIONS, true)
             ? $position
             : self::DEFAULT_POSITION;
     }

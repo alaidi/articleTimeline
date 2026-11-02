@@ -37,10 +37,13 @@ msgstr "Display position"
 
 msgid "plugins.generic.articleTimeline.settings.position.desc"
 msgstr ""
-"Where to show the timeline on the article page: in the main column under the "
-"abstract, or as a block in the details sidebar."
+"Where to show the timeline on the article page: in the main column above or "
+"under the abstract, or as a block in the details sidebar."
 
 msgid "plugins.generic.articleTimeline.settings.position.main"
+msgstr "Main column (above the abstract)"
+
+msgid "plugins.generic.articleTimeline.settings.position.mainBelow"
 msgstr "Main column (under the abstract)"
 
 msgid "plugins.generic.articleTimeline.settings.position.sidebar"

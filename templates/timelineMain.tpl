@@ -4,8 +4,9 @@
  * Copyright (c) 2026 Abdul Hadi Alaidi
  * Distributed under the GNU GPL v3. For full terms see the file docs/COPYING.
  *
- * Horizontal editorial timeline, moved above the abstract in the main
- * column (falls back to Templates::Article::Main when there is no abstract).
+ * Horizontal editorial timeline in the main column, rendered via
+ * Templates::Article::Main (under the abstract) and, for the "above"
+ * position, moved before the abstract section when the page has one.
  *}
 
 <div class="item article-timeline article-timeline-main">

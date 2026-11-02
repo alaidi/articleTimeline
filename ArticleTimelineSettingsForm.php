@@ -39,7 +39,7 @@ class ArticleTimelineSettingsForm extends Form
             $this->plugin::SETTING_POSITION,
             'required',
             'validator.required',
-            fn ($position) => in_array($position, [$this->plugin::POSITION_MAIN, $this->plugin::POSITION_SIDEBAR], true)
+            fn ($position) => in_array($position, $this->plugin::POSITIONS, true)
         ));
         $this->addCheck(new FormValidatorCustom(
             $this,
@@ -78,6 +78,7 @@ class ArticleTimelineSettingsForm extends Form
         $templateMgr->assign([
             'positions' => [
                 $this->plugin::POSITION_MAIN => __('plugins.generic.articleTimeline.settings.position.main'),
+                $this->plugin::POSITION_MAIN_BELOW => __('plugins.generic.articleTimeline.settings.position.mainBelow'),
                 $this->plugin::POSITION_SIDEBAR => __('plugins.generic.articleTimeline.settings.position.sidebar'),
             ],
             'pluginName' => $this->plugin->getName(),

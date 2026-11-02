@@ -37,10 +37,13 @@ msgstr "موضع العرض"
 
 msgid "plugins.generic.articleTimeline.settings.position.desc"
 msgstr ""
-"مكان عرض الخط الزمني في صفحة المقال: في العمود الرئيسي أسفل الملخص، أو "
+"مكان عرض الخط الزمني في صفحة المقال: في العمود الرئيسي أعلى الملخص أو أسفله، أو "
 "كتلة في الشريط الجانبي."
 
 msgid "plugins.generic.articleTimeline.settings.position.main"
+msgstr "العمود الرئيسي (أعلى الملخص)"
+
+msgid "plugins.generic.articleTimeline.settings.position.mainBelow"
 msgstr "العمود الرئيسي (أسفل الملخص)"
 
 msgid "plugins.generic.articleTimeline.settings.position.sidebar"
