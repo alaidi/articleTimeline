@@ -1,0 +1,57 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: articleTimeline\n"
+"Report-Msgid-Bugs-To: \n"
+"Last-Translator: Abdul Hadi Alaidi\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "plugins.generic.articleTimeline.displayName"
+msgstr "Article Timeline"
+
+msgid "plugins.generic.articleTimeline.description"
+msgstr ""
+"Shows the editorial timeline (Received, Revised, Accepted, Online) on the "
+"article landing page. Dates are derived from the submission record, revision "
+"file uploads, editorial decisions and the first publication date."
+
+msgid "plugins.generic.articleTimeline.timelineLabel"
+msgstr "Article History"
+
+msgid "plugins.generic.articleTimeline.received"
+msgstr "Received"
+
+msgid "plugins.generic.articleTimeline.revised"
+msgstr "Revised"
+
+msgid "plugins.generic.articleTimeline.accepted"
+msgstr "Accepted"
+
+msgid "plugins.generic.articleTimeline.online"
+msgstr "Online"
+
+msgid "plugins.generic.articleTimeline.settings.position"
+msgstr "Display position"
+
+msgid "plugins.generic.articleTimeline.settings.position.desc"
+msgstr ""
+"Where to show the timeline on the article page: in the main column under the "
+"abstract, or as a block in the details sidebar."
+
+msgid "plugins.generic.articleTimeline.settings.position.main"
+msgstr "Main column (under the abstract)"
+
+msgid "plugins.generic.articleTimeline.settings.position.sidebar"
+msgstr "Sidebar (details column)"
+
+msgid "plugins.generic.articleTimeline.settings.dateFormat"
+msgstr "Date format"
+
+msgid "plugins.generic.articleTimeline.settings.dateFormat.desc"
+msgstr ""
+"PHP date format string (e.g. “M. j, Y” renders as “Dec. 5, 2024”)."
+
+msgid "plugins.generic.articleTimeline.settings.saved"
+msgstr "Settings saved."

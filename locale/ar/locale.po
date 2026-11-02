@@ -1,0 +1,57 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: articleTimeline\n"
+"Report-Msgid-Bugs-To: \n"
+"Last-Translator: Abdul Hadi Alaidi\n"
+"Language: ar\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "plugins.generic.articleTimeline.displayName"
+msgstr "الخط الزمني للمقال"
+
+msgid "plugins.generic.articleTimeline.description"
+msgstr ""
+"يعرض الخط الزمني التحريري (استلام، تنقيح، قبول، نشر إلكتروني) في صفحة "
+"المقال. تُستمد التواريخ من سجل الإرسال، وملفات التنقيح المرفوعة، والقرارات "
+"التحريرية، وتاريخ النشر الأول."
+
+msgid "plugins.generic.articleTimeline.timelineLabel"
+msgstr "تاريخ المقال"
+
+msgid "plugins.generic.articleTimeline.received"
+msgstr "استُلم"
+
+msgid "plugins.generic.articleTimeline.revised"
+msgstr "نُقّح"
+
+msgid "plugins.generic.articleTimeline.accepted"
+msgstr "قُبل"
+
+msgid "plugins.generic.articleTimeline.online"
+msgstr "نُشر إلكترونيًا"
+
+msgid "plugins.generic.articleTimeline.settings.position"
+msgstr "موضع العرض"
+
+msgid "plugins.generic.articleTimeline.settings.position.desc"
+msgstr ""
+"مكان عرض الخط الزمني في صفحة المقال: في العمود الرئيسي أسفل الملخص، أو "
+"كتلة في الشريط الجانبي."
+
+msgid "plugins.generic.articleTimeline.settings.position.main"
+msgstr "العمود الرئيسي (أسفل الملخص)"
+
+msgid "plugins.generic.articleTimeline.settings.position.sidebar"
+msgstr "الشريط الجانبي (عمود التفاصيل)"
+
+msgid "plugins.generic.articleTimeline.settings.dateFormat"
+msgstr "تنسيق التاريخ"
+
+msgid "plugins.generic.articleTimeline.settings.dateFormat.desc"
+msgstr ""
+"سلسلة تنسيق تاريخ بصيغة PHP (مثال: “M. j, Y” تُعرض كـ «Dec. 5, 2024»)."
+
+msgid "plugins.generic.articleTimeline.settings.saved"
+msgstr "تم حفظ الإعدادات."
