@@ -8,7 +8,7 @@
  * (after the abstract in the main column).
  *}
 
-<div class="article-timeline article-timeline-main">
+<div class="item article-timeline article-timeline-main">
 	{foreach from=$articleTimelineEntries item=entry}
 		<span class="article-timeline-entry">
 			<span class="article-timeline-label">{translate key=$entry.labelKey}</span>

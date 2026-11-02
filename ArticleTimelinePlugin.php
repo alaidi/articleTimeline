@@ -171,9 +171,27 @@ class ArticleTimelinePlugin extends GenericPlugin
                 : self::DEFAULT_DATE_FORMAT,
         ]);
 
-        $output .= $templateMgr->fetch($this->getTemplateResource(
+        $html = $templateMgr->fetch($this->getTemplateResource(
             $position === self::POSITION_MAIN ? 'timelineMain.tpl' : 'timelineSidebar.tpl'
         ));
+
+        // No theme hook sits above the abstract, so move the timeline there in the final page output.
+        // shortcut: matches the first <section> whose class contains "abstract" (default + individualizeTheme); a theme with other markup needs its own pattern
+        $publication = $templateMgr->getTemplateVars('publication');
+        if ($position === self::POSITION_MAIN && $publication && $publication->getLocalizedData('abstract')) {
+            $inserted = false;
+            $templateMgr->registerFilter('output', function (string $source) use ($html, &$inserted): string {
+                if ($inserted) {
+                    return $source;
+                }
+                $result = preg_replace('/<section class="[^"]*\babstract\b[^"]*">/', $html . '$0', $source, 1, $count);
+                $inserted = $count > 0;
+                return $result;
+            });
+            return false;
+        }
+
+        $output .= $html;
 
         return false;
     }
