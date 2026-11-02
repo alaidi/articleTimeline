@@ -8,7 +8,9 @@
  * inherited from the active theme.
  */
 
+/* own margin: themes like rumahJurnalTheme give .item no spacing (the default theme pads it) */
 .article-timeline-main {
+	margin: 1rem 0;
 	font-size: 0.9em;
 }
 
