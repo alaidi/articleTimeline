@@ -6,7 +6,7 @@ on:
 name: articleTimeline
 jobs:
   articleTimeline:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # ubuntu-26.04 dropped apt-key + mysql-server-8.0 that pkp-github-actions@v1 needs
     strategy:
       fail-fast: false
       matrix:
