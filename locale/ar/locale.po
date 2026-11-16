@@ -64,5 +64,13 @@ msgstr ""
 "“d/m/Y” أو “F j, Y”. ضع شرطة مائلة عكسية قبل أي حرف آخر (“\\o\\f”)، "
 "واستخدم تاريخًا تقويميًا لا طابعًا زمنيًا بنظام يونكس (“U”)."
 
+msgid "plugins.generic.articleTimeline.settings.hiddenDates"
+msgstr "إخفاء التواريخ"
+
+msgid "plugins.generic.articleTimeline.settings.hiddenDates.desc"
+msgstr ""
+"لا تظهر التواريخ المحددة في صفحة المقالة، لكنها تبقى معتمدة عند احتساب "
+"التواريخ الأخرى: فتاريخ القبول المخفي يبقى يمنع أن يأتي تاريخ المراجعة بعده."
+
 msgid "plugins.generic.articleTimeline.settings.saved"
 msgstr "تم حفظ الإعدادات."

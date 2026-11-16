@@ -9,8 +9,8 @@
  * @class ArticleTimelineSettingsForm
  * @ingroup plugins_generic_articleTimeline
  *
- * @brief Settings form for the articleTimeline plugin: display position
- *   and date format.
+ * @brief Settings form for the articleTimeline plugin: display position,
+ *   date format and hidden dates.
  */
 
 namespace APP\plugins\generic\articleTimeline;
@@ -48,6 +48,13 @@ class ArticleTimelineSettingsForm extends Form
             'plugins.generic.articleTimeline.settings.dateFormat.invalid',
             fn ($format) => $this->plugin::isValidDateFormat($format)
         ));
+        $this->addCheck(new FormValidatorCustom(
+            $this,
+            $this->plugin::SETTING_HIDDEN_DATES,
+            'optional',
+            'validator.required',
+            fn ($hidden) => is_array($hidden) && array_filter($hidden, fn ($date) => !in_array($date, $this->plugin::DATES, true)) === []
+        ));
     }
 
     public function initData()
@@ -62,6 +69,8 @@ class ArticleTimelineSettingsForm extends Form
 
         $this->setData($this->plugin::SETTING_POSITION, $position ?: $this->plugin::DEFAULT_POSITION);
         $this->setData($this->plugin::SETTING_DATE_FORMAT, $dateFormat ?: $this->plugin::DEFAULT_DATE_FORMAT);
+        $hidden = $this->plugin->getSetting($context->getId(), $this->plugin::SETTING_HIDDEN_DATES);
+        $this->setData($this->plugin::SETTING_HIDDEN_DATES, is_array($hidden) ? $hidden : []);
     }
 
     public function readInputData()
@@ -69,8 +78,11 @@ class ArticleTimelineSettingsForm extends Form
         $this->readUserVars([
             $this->plugin::SETTING_POSITION,
             $this->plugin::SETTING_DATE_FORMAT,
+            $this->plugin::SETTING_HIDDEN_DATES,
         ]);
         $this->setData($this->plugin::SETTING_DATE_FORMAT, trim((string) $this->getData($this->plugin::SETTING_DATE_FORMAT)));
+        // no box ticked: the field is not posted at all
+        $this->setData($this->plugin::SETTING_HIDDEN_DATES, $this->getData($this->plugin::SETTING_HIDDEN_DATES) ?? []);
     }
 
     public function fetch($request, $template = null, $display = false)
@@ -82,9 +94,14 @@ class ArticleTimelineSettingsForm extends Form
                 $this->plugin::POSITION_MAIN_BELOW => __('plugins.generic.articleTimeline.settings.position.mainBelow'),
                 $this->plugin::POSITION_SIDEBAR => __('plugins.generic.articleTimeline.settings.position.sidebar'),
             ],
+            'dates' => array_combine(
+                $this->plugin::DATES,
+                array_map(fn ($date) => __('plugins.generic.articleTimeline.' . $date), $this->plugin::DATES)
+            ),
             'pluginName' => $this->plugin->getName(),
             'settingPosition' => $this->plugin::SETTING_POSITION,
             'settingDateFormat' => $this->plugin::SETTING_DATE_FORMAT,
+            'settingHiddenDates' => $this->plugin::SETTING_HIDDEN_DATES,
             'defaultPosition' => $this->plugin::DEFAULT_POSITION,
             'defaultDateFormat' => $this->plugin::DEFAULT_DATE_FORMAT,
         ]);
@@ -107,6 +124,11 @@ class ArticleTimelineSettingsForm extends Form
             $context->getId(),
             $this->plugin::SETTING_DATE_FORMAT,
             $this->getData($this->plugin::SETTING_DATE_FORMAT)
+        );
+        $this->plugin->updateSetting(
+            $context->getId(),
+            $this->plugin::SETTING_HIDDEN_DATES,
+            array_values($this->getData($this->plugin::SETTING_HIDDEN_DATES))
         );
 
         parent::execute(...$functionArgs);

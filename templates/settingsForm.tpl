@@ -52,6 +52,20 @@
 				size=$fbvStyles.size.MEDIUM
 			}
 		{/fbvFormSection}
+		{fbvFormSection
+			list=true
+			id="articleTimeline-hiddenDates-section"
+			label="plugins.generic.articleTimeline.settings.hiddenDates"
+			description="plugins.generic.articleTimeline.settings.hiddenDates.desc"
+		}
+			{fbvElement
+				type="checkboxgroup"
+				id=$settingHiddenDates
+				from=$dates
+				selected=$hiddenDates
+				translate=false
+			}
+		{/fbvFormSection}
 	{/fbvFormArea}
 	{fbvFormButtons submitText="common.save" hideCancel=true}
 </form>

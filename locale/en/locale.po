@@ -64,5 +64,14 @@ msgstr ""
 "“d/m/Y” or “F j, Y”. Put a backslash before any other letter (“\\o\\f”), and "
 "use a calendar date rather than a Unix timestamp (“U”)."
 
+msgid "plugins.generic.articleTimeline.settings.hiddenDates"
+msgstr "Hide dates"
+
+msgid "plugins.generic.articleTimeline.settings.hiddenDates.desc"
+msgstr ""
+"Ticked dates are not shown on the article page. They still count when the "
+"other dates are worked out: a hidden Accepted date still keeps Revised from "
+"coming after it."
+
 msgid "plugins.generic.articleTimeline.settings.saved"
 msgstr "Settings saved."

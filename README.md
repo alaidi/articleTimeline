@@ -76,6 +76,11 @@ escaped with a backslash (`\o\f`), since PHP would print them as they are. A wor
 made only of format characters (such as "Today") is still a valid format, and
 shows a date rather than the word.
 
+**Hide dates** — tick Received, Revised, Accepted or Online to leave that date off
+the article page (none by default). Hiding only affects the display: a hidden
+Accepted date still keeps Revised from coming after it. With every date hidden,
+no timeline is shown.
+
 Interface strings are available in English and Arabic; the timeline follows the
 page direction (RTL in Arabic). Each date is a `<time datetime="YYYY-MM-DD">`
 element, and the main-column timeline is announced as a list named "Article History".
@@ -130,6 +135,7 @@ See [CONTRIBUTING.md](https://github.com/alaidi/articleTimeline/blob/main/CONTRI
 
 ## Version history
 
+- **1.3.0.0** — "Hide dates" setting: leave any of the four dates off the article page.
 - **1.2.1.0** — Stricter date format check (letters that are not format characters
   must be escaped; `U` refused); without an acceptance, Revised is not later than
   the day of publication; abstract detection accepts unquoted classes and `>` in

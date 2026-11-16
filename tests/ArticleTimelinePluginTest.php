@@ -52,6 +52,11 @@ class ArticleTimelinePluginTest extends PKPTestCase
             {
                 return $this->getDateFormat(1);
             }
+
+            public function hiddenDates(): array
+            {
+                return $this->getHiddenDates(1);
+            }
         };
     }
 
@@ -364,6 +369,42 @@ class ArticleTimelinePluginTest extends PKPTestCase
     {
         $this->assertSame([], $this->entries($this->article(null), [], []));
         $this->assertSame(['received' => '2024-12-05 10:00:00'], $this->entries($this->article('2024-12-05 10:00:00', [[Submission::STATUS_QUEUED, null]]), $this->files(null, ''), $this->decisions(null, '')));
+    }
+
+    public function testHiddenDatesAreLeftOutInOrder(): void
+    {
+        $article = $this->article('2024-12-05 10:00:00', [[Submission::STATUS_PUBLISHED, '2025-06-01']]);
+        $entries = fn (array $hidden) => array_map(
+            fn (array $entry) => substr($entry['labelKey'], strlen('plugins.generic.articleTimeline.')),
+            ArticleTimelinePlugin::timelineEntries($article, $this->files('2025-03-14 09:00:00'), $this->decisions('2025-05-11 12:00:00'), $hidden)
+        );
+
+        $this->assertSame(['received', 'revised', 'accepted', 'online'], $entries([]));
+        $this->assertSame(['revised', 'online'], $entries(['received', 'accepted']));
+        $this->assertSame([], $entries(ArticleTimelinePlugin::DATES));
+    }
+
+    public function testHiddenAcceptanceStillLimitsTheRevision(): void
+    {
+        $entries = ArticleTimelinePlugin::timelineEntries(
+            $this->article('2024-12-05 10:00:00'),
+            $this->files('2025-03-14 09:00:00', '2025-05-20 09:00:00'),
+            $this->decisions('2025-05-11 12:00:00'),
+            ['accepted']
+        );
+
+        $this->assertSame([
+            ['labelKey' => 'plugins.generic.articleTimeline.received', 'date' => '2024-12-05 10:00:00'],
+            ['labelKey' => 'plugins.generic.articleTimeline.revised', 'date' => '2025-03-14 09:00:00'],
+        ], $entries);
+    }
+
+    public function testStoredHiddenDatesKeepOnlyKnownDates(): void
+    {
+        $setting = ArticleTimelinePlugin::SETTING_HIDDEN_DATES;
+        $this->assertSame([], $this->plugin(null, $setting)->hiddenDates());
+        $this->assertSame([], $this->plugin('online', $setting)->hiddenDates());
+        $this->assertSame(['accepted', 'online'], $this->plugin(['online', 'bogus', ['x'], 'accepted'], $setting)->hiddenDates());
     }
 
     public function testLatestRevisionOfSeveralRounds(): void

@@ -33,6 +33,10 @@ class ArticleTimelinePlugin extends GenericPlugin
 {
     public const SETTING_POSITION = 'position';
     public const SETTING_DATE_FORMAT = 'dateFormat';
+    public const SETTING_HIDDEN_DATES = 'hiddenDates';
+
+    /** The timeline dates, in display order (also the locale key suffixes) */
+    public const DATES = ['received', 'revised', 'accepted', 'online'];
 
     // 'main' (above the abstract) keeps its stored value from 1.0.x so saved settings don't change
     public const POSITION_MAIN = 'main';
@@ -172,7 +176,7 @@ class ArticleTimelinePlugin extends GenericPlugin
         }
 
         $this->rendered = true;
-        $entries = $this->getTimelineEntries($article);
+        $entries = $this->getTimelineEntries($article, $this->getHiddenDates($context->getId()));
         if ($entries === []) {
             return false;
         }
@@ -286,9 +290,11 @@ class ArticleTimelinePlugin extends GenericPlugin
      * Load what the timeline needs for a submission: its author-uploaded revision files
      * and its acceptance decisions (two to three queries, for the article being viewed only).
      *
+     * @param string[] $hidden dates (values of DATES) not to show
+     *
      * @return array<int, array{labelKey: string, date: string}> ordered entries
      */
-    protected function getTimelineEntries(PKPSubmission $article): array
+    protected function getTimelineEntries(PKPSubmission $article, array $hidden = []): array
     {
         $authorIds = self::authorUserIds($article->getId());
 
@@ -306,7 +312,7 @@ class ArticleTimelinePlugin extends GenericPlugin
             ->filterByDecisionTypes([Decision::ACCEPT, Decision::SKIP_EXTERNAL_REVIEW])
             ->getMany();
 
-        return self::timelineEntries($article, $revisionFiles, $acceptDecisions);
+        return self::timelineEntries($article, $revisionFiles, $acceptDecisions, $hidden);
     }
 
     /**
@@ -338,14 +344,16 @@ class ArticleTimelinePlugin extends GenericPlugin
      * - Online: earliest datePublished of the published versions (not core's firstPublication,
      *   which takes an unpublished draft version as the earliest)
      *
-     * Dates that are unavailable are omitted.
+     * Dates that are unavailable are omitted, and so are the $hidden ones: hiding only affects
+     * the display, so a hidden Accepted date still keeps Revised from coming after it.
      *
      * @param iterable<SubmissionFile> $revisionFiles
      * @param iterable<Decision> $acceptDecisions
+     * @param string[] $hidden dates (values of DATES) not to show
      *
      * @return array<int, array{labelKey: string, date: string}> ordered entries
      */
-    public static function timelineEntries(PKPSubmission $article, iterable $revisionFiles, iterable $acceptDecisions): array
+    public static function timelineEntries(PKPSubmission $article, iterable $revisionFiles, iterable $acceptDecisions, array $hidden = []): array
     {
         $dates = fn (iterable $objects, string $key) => array_filter(
             array_map(fn ($object) => $object->getData($key), is_array($objects) ? $objects : iterator_to_array($objects, false)),
@@ -363,7 +371,7 @@ class ArticleTimelinePlugin extends GenericPlugin
             'accepted' => $accepted,
             'online' => $online,
         ] as $label => $date) {
-            if ($date) {
+            if ($date && !in_array($label, $hidden, true)) {
                 $entries[] = ['labelKey' => 'plugins.generic.articleTimeline.' . $label, 'date' => $date];
             }
         }
@@ -404,5 +412,16 @@ class ArticleTimelinePlugin extends GenericPlugin
     {
         $format = $this->getSetting($contextId, self::SETTING_DATE_FORMAT);
         return self::isValidDateFormat($format) ? $format : self::DEFAULT_DATE_FORMAT;
+    }
+
+    /**
+     * Get the dates the journal hides; unknown stored values are ignored
+     *
+     * @return string[] values of DATES
+     */
+    protected function getHiddenDates(int $contextId): array
+    {
+        $hidden = $this->getSetting($contextId, self::SETTING_HIDDEN_DATES);
+        return is_array($hidden) ? array_values(array_filter(self::DATES, fn ($date) => in_array($date, $hidden, true))) : [];
     }
 }
