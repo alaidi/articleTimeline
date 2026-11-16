@@ -10,7 +10,7 @@
 
 /* own margin: themes like rumahJurnalTheme give .item no spacing (the default theme pads it) */
 .article-timeline-main {
-	margin: 1rem 0;
+	margin-block: 1rem;
 	font-size: 0.9em;
 }
 
@@ -22,15 +22,19 @@
 	overflow: hidden;
 }
 
+/* label and date each stay whole; on a narrow screen the date drops under its label instead of being clipped */
 .article-timeline-main .article-timeline-entry {
 	position: relative;
 	display: inline-flex;
+	flex-wrap: wrap;
 	align-items: baseline;
-	white-space: nowrap;
+	column-gap: 0.25em;
+	max-width: 100%;
 }
 
 .article-timeline-main .article-timeline-entry::before {
 	content: "·";
+	content: "·" / "";
 	position: absolute;
 	inset-inline-start: -0.95em;
 	opacity: 0.6;
@@ -38,7 +42,11 @@
 
 .article-timeline .article-timeline-label {
 	font-weight: 600;
-	margin-inline-end: 0.25em;
+}
+
+.article-timeline .article-timeline-label,
+.article-timeline .article-timeline-date {
+	white-space: nowrap;
 }
 
 .article-timeline-sidebar .article-timeline-list {
@@ -49,6 +57,7 @@
 
 .article-timeline-sidebar .article-timeline-entry {
 	display: flex;
+	flex-wrap: wrap;
 	justify-content: space-between;
-	gap: 0.75em;
+	gap: 0 0.75em;
 }

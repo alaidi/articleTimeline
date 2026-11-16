@@ -24,9 +24,9 @@ theme in use, and steps to reproduce. Errors from `error_log` or the browser con
 Push a tag that matches `<release>` in `version.xml`, prefixed with `v`:
 
 ```sh
-git tag v1.1.0.0 && git push origin v1.1.0.0
+git tag v1.2.0.0 && git push origin v1.2.0.0
 ```
 
-The *Package plugin* workflow builds `articleTimeline-1.1.0.0.tar.gz` (tests and CI files
+The *Package plugin* workflow builds `articleTimeline-1.2.0.0.tar.gz` (tests and CI files
 left out) and attaches it to the GitHub Release. It fails when the tag and `version.xml`
 disagree.

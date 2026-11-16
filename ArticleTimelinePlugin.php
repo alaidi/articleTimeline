@@ -24,6 +24,8 @@ use PKP\linkAction\LinkAction;
 use PKP\linkAction\request\AjaxModal;
 use PKP\plugins\GenericPlugin;
 use PKP\plugins\Hook;
+use PKP\security\Role;
+use PKP\stageAssignment\StageAssignment;
 use PKP\submission\PKPSubmission;
 use PKP\submissionFile\SubmissionFile;
 
@@ -40,6 +42,9 @@ class ArticleTimelinePlugin extends GenericPlugin
 
     public const DEFAULT_POSITION = self::POSITION_MAIN;
     public const DEFAULT_DATE_FORMAT = 'M.j, Y';
+
+    /** The timeline is shown once per page, whatever hooks a theme calls. */
+    private bool $rendered = false;
 
     /**
      * @copydoc Plugin::register()
@@ -102,7 +107,8 @@ class ArticleTimelinePlugin extends GenericPlugin
                     $form->execute();
                     return new JSONMessage(true, __('plugins.generic.articleTimeline.settings.saved'));
                 }
-                return new JSONMessage(false);
+                // the form again, with its errors; nothing is saved
+                return new JSONMessage(true, $form->fetch($request));
         }
         return parent::manage($args, $request);
     }
@@ -141,37 +147,39 @@ class ArticleTimelinePlugin extends GenericPlugin
      *
      * Registered against both Templates::Article::Main and
      * Templates::Article::Details; renders only on the hook matching
-     * the configured position setting.
+     * the configured position setting, and at most once per request.
      */
     public function addToArticle(string $hookName, array $args): bool
     {
         $output =& $args[2];
 
-        $request = Application::get()->getRequest();
-        $templateMgr = TemplateManager::getManager($request);
-        $article = $templateMgr->getTemplateVars('article');
-
-        if (!$article instanceof PKPSubmission) {
+        if ($this->rendered) {
             return false;
         }
 
+        $request = Application::get()->getRequest();
+        $templateMgr = TemplateManager::getManager($request);
+        $article = $templateMgr->getTemplateVars('article');
         $context = $request->getContext();
+
+        if (!$article instanceof PKPSubmission || !$context) {
+            return false;
+        }
+
         $position = $this->getPosition($context->getId());
         if (($position === self::POSITION_SIDEBAR) !== ($hookName === 'Templates::Article::Details')) {
             return false;
         }
 
-        $entries = $this->getTimelineEntries($templateMgr, $article);
+        $this->rendered = true;
+        $entries = $this->getTimelineEntries($article);
         if ($entries === []) {
             return false;
         }
 
-        $dateFormat = $this->getSetting($context->getId(), self::SETTING_DATE_FORMAT);
         $templateMgr->assign([
             'articleTimelineEntries' => $entries,
-            'articleTimelineFormat' => is_string($dateFormat) && $dateFormat !== ''
-                ? $dateFormat
-                : self::DEFAULT_DATE_FORMAT,
+            'articleTimelineFormat' => $this->getDateFormat($context->getId()),
         ]);
 
         $html = $templateMgr->fetch($this->getTemplateResource(
@@ -199,6 +207,15 @@ class ArticleTimelinePlugin extends GenericPlugin
     }
 
     /**
+     * Whether a date format shows a date: a non-empty string with at least one
+     * unescaped day-of-month, month or year character (time-only formats like "H:i" fail).
+     */
+    public static function isValidDateFormat(mixed $format): bool
+    {
+        return is_string($format) && preg_match('/(?<!\\\\)[djFmMnoXxYycrU]/', $format) === 1;
+    }
+
+    /**
      * Move the first copy of $html in $source to right before the first abstract section.
      *
      * @return ?string the new page html, or null when $source lacks $html or an abstract section
@@ -213,16 +230,18 @@ class ArticleTimelinePlugin extends GenericPlugin
     }
 
     /**
-     * Insert $html right before the first abstract section of $source.
+     * Insert $html right before the opening tag of the first abstract block of $source:
+     * a <section> or <div> with a class "abstract" or "…-abstract" (default theme: "item abstract",
+     * individualizeTheme: "article-section-abstract"), in any attribute order and quote style.
      *
-     * shortcut: matches the first <section> whose class contains "abstract" (default + individualizeTheme); a theme with other markup needs its own pattern
+     * A regex on the opening tag, not a DOM parser: re-serialising the whole page would alter its markup.
      *
-     * @return ?string the new page html, or null when no abstract section was found
+     * @return ?string the new page html, or null when no abstract block was found
      */
     public static function insertBeforeAbstract(string $source, string $html): ?string
     {
         $result = preg_replace_callback(
-            '/<section class="[^"]*\babstract\b[^"]*">/',
+            '/<(?:section|div)(?=\s)[^>]*?\sclass\s*=\s*(["\'])[^"\'>]*?(?<![\w-])(?:[\w-]+-)?abstract(?![\w-])[^"\'>]*\1[^>]*>/i',
             fn (array $match) => $html . $match[0],
             $source,
             1,
@@ -232,65 +251,75 @@ class ArticleTimelinePlugin extends GenericPlugin
     }
 
     /**
-     * Derive the timeline dates for a submission.
-     *
-     * - Received: submissions.date_submitted
-     * - Revised: latest upload of a review-revision file (stages 15/20)
-     * - Accepted: date_decided of the last Accept decision
-     * - Online: date_published of the first publication
-     *
-     * Dates that are unavailable are omitted.
+     * Load what the timeline needs for a submission: its author-uploaded revision files
+     * and its acceptance decisions (two to three queries, for the article being viewed only).
      *
      * @return array<int, array{labelKey: string, date: string}> ordered entries
      */
-    protected function getTimelineEntries(TemplateManager $templateMgr, PKPSubmission $article): array
+    protected function getTimelineEntries(PKPSubmission $article): array
     {
-        $entries = [];
+        $authorIds = StageAssignment::withSubmissionIds([$article->getId()])
+            ->withRoleIds([Role::ROLE_ID_AUTHOR])
+            ->pluck('stage_assignments.user_id')
+            ->all();
 
-        $received = $article->getData('dateSubmitted');
-        if ($received) {
-            $entries[] = ['labelKey' => 'plugins.generic.articleTimeline.received', 'date' => $received];
-        }
-
-        $revised = null;
-        $revisionFiles = Repo::submissionFile()->getCollector()
+        $revisionFiles = $authorIds === [] ? [] : Repo::submissionFile()->getCollector()
             ->filterBySubmissionIds([$article->getId()])
             ->filterByFileStages([
                 SubmissionFile::SUBMISSION_FILE_REVIEW_REVISION,
-                SubmissionFile::SUBMISSION_FILE_INTERNAL_REVIEW_REVISION,
+                SubmissionFile::SUBMISSION_FILE_INTERNAL_REVIEW_REVISION, // OMP's internal review; never used by OJS
             ])
+            ->filterByUploaderUserIds($authorIds)
             ->getMany();
-        foreach ($revisionFiles as $revisionFile) {
-            $createdAt = $revisionFile->getData('createdAt');
-            if ($createdAt && (!$revised || $createdAt > $revised)) {
-                $revised = $createdAt;
-            }
-        }
-        if ($revised) {
-            $entries[] = ['labelKey' => 'plugins.generic.articleTimeline.revised', 'date' => $revised];
-        }
 
-        $accepted = null;
-        $decisions = Repo::decision()->getCollector()
+        $acceptDecisions = Repo::decision()->getCollector()
             ->filterBySubmissionIds([$article->getId()])
-            ->filterByDecisionTypes([Decision::ACCEPT])
+            ->filterByDecisionTypes([Decision::ACCEPT, Decision::SKIP_EXTERNAL_REVIEW])
             ->getMany();
-        foreach ($decisions as $decision) {
-            $dateDecided = $decision->getData('dateDecided');
-            if ($dateDecided && (!$accepted || $dateDecided > $accepted)) {
-                $accepted = $dateDecided;
+
+        return self::timelineEntries($article, $revisionFiles, $acceptDecisions);
+    }
+
+    /**
+     * Derive the timeline dates (no database access).
+     *
+     * - Received: the submission's dateSubmitted
+     * - Accepted: dateDecided of the last Accept or "Accept and Skip Review" decision
+     * - Revised: latest upload of a review-revision file by an author, not after the acceptance
+     *   (the caller passes only author-uploaded files)
+     * - Online: earliest datePublished of the published versions (not core's firstPublication,
+     *   which takes an unpublished draft version as the earliest)
+     *
+     * Dates that are unavailable are omitted.
+     *
+     * @param iterable<SubmissionFile> $revisionFiles
+     * @param iterable<Decision> $acceptDecisions
+     *
+     * @return array<int, array{labelKey: string, date: string}> ordered entries
+     */
+    public static function timelineEntries(PKPSubmission $article, iterable $revisionFiles, iterable $acceptDecisions): array
+    {
+        $dates = fn (iterable $objects, string $key) => array_filter(
+            array_map(fn ($object) => $object->getData($key), is_array($objects) ? $objects : iterator_to_array($objects, false)),
+            fn ($date) => is_string($date) && $date !== ''
+        );
+
+        $accepted = max($dates($acceptDecisions, 'dateDecided') ?: [null]);
+        $revisions = $dates($revisionFiles, 'createdAt');
+        $revised = max(($accepted ? array_filter($revisions, fn ($date) => $date <= $accepted) : $revisions) ?: [null]);
+        $online = min($dates($article->getPublishedPublications(), 'datePublished') ?: [null]);
+
+        $entries = [];
+        foreach ([
+            'received' => $article->getData('dateSubmitted'),
+            'revised' => $revised,
+            'accepted' => $accepted,
+            'online' => $online,
+        ] as $label => $date) {
+            if ($date) {
+                $entries[] = ['labelKey' => 'plugins.generic.articleTimeline.' . $label, 'date' => $date];
             }
         }
-        if ($accepted) {
-            $entries[] = ['labelKey' => 'plugins.generic.articleTimeline.accepted', 'date' => $accepted];
-        }
-
-        $firstPublication = $templateMgr->getTemplateVars('firstPublication');
-        $online = $firstPublication ? $firstPublication->getData('datePublished') : null;
-        if ($online) {
-            $entries[] = ['labelKey' => 'plugins.generic.articleTimeline.online', 'date' => $online];
-        }
-
         return $entries;
     }
 
@@ -303,5 +332,14 @@ class ArticleTimelinePlugin extends GenericPlugin
         return is_string($position) && in_array($position, self::POSITIONS, true)
             ? $position
             : self::DEFAULT_POSITION;
+    }
+
+    /**
+     * Get the configured date format, falling back to the default when it is missing or shows no date
+     */
+    protected function getDateFormat(int $contextId): string
+    {
+        $format = $this->getSetting($contextId, self::SETTING_DATE_FORMAT);
+        return self::isValidDateFormat($format) ? $format : self::DEFAULT_DATE_FORMAT;
     }
 }

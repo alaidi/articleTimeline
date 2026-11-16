@@ -45,8 +45,8 @@ class ArticleTimelineSettingsForm extends Form
             $this,
             $this->plugin::SETTING_DATE_FORMAT,
             'required',
-            'validator.required',
-            fn ($format) => is_string($format) && $format !== ''
+            'plugins.generic.articleTimeline.settings.dateFormat.invalid',
+            fn ($format) => $this->plugin::isValidDateFormat($format)
         ));
     }
 
@@ -70,6 +70,7 @@ class ArticleTimelineSettingsForm extends Form
             $this->plugin::SETTING_POSITION,
             $this->plugin::SETTING_DATE_FORMAT,
         ]);
+        $this->setData($this->plugin::SETTING_DATE_FORMAT, trim((string) $this->getData($this->plugin::SETTING_DATE_FORMAT)));
     }
 
     public function fetch($request, $template = null, $display = false)

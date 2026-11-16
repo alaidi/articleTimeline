@@ -54,7 +54,14 @@ msgstr "تنسيق التاريخ"
 
 msgid "plugins.generic.articleTimeline.settings.dateFormat.desc"
 msgstr ""
-"سلسلة تنسيق تاريخ بصيغة PHP (مثال: “M.j, Y” تُعرض كـ «Dec.5, 2024»)."
+"سلسلة تنسيق تاريخ بصيغة PHP تُظهر اليوم أو الشهر أو السنة. أمثلة: “M.j, Y” ← "
+"«Dec.5, 2024»، و“d/m/Y” ← «05/12/2024»، و“F j, Y” ← «December 5, 2024». تظهر "
+"أسماء الأشهر بلغة القارئ."
+
+msgid "plugins.generic.articleTimeline.settings.dateFormat.invalid"
+msgstr ""
+"أدخل تنسيق تاريخ بصيغة PHP يُظهر اليوم أو الشهر أو السنة، مثل “M.j, Y” أو "
+"“d/m/Y” أو “F j, Y”."
 
 msgid "plugins.generic.articleTimeline.settings.saved"
 msgstr "تم حفظ الإعدادات."

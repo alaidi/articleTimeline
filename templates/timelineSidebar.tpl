@@ -19,7 +19,7 @@
 				{foreach from=$articleTimelineEntries item=entry}
 					<li class="article-timeline-entry">
 						<span class="article-timeline-label">{translate key=$entry.labelKey}</span>
-						<span class="article-timeline-date">{$entry.date|date_format:$articleTimelineFormat}</span>
+						<time class="article-timeline-date" datetime="{$entry.date|date_format:'Y-m-d'|escape}">{$entry.date|date_format:$articleTimelineFormat|escape}</time>
 					</li>
 				{/foreach}
 			</ul>

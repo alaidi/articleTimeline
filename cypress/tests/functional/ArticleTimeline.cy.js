@@ -5,7 +5,8 @@
  * Distributed under the GNU GPL v3. For full terms see the file docs/COPYING.
  *
  * Functional tests: the three display positions in the settings, and where each
- * one puts the timeline on an article page.
+ * one puts the timeline on an article page; the date format check; the layout on
+ * a phone-sized screen.
  *
  * Parameters (--env): contextPath, adminUser, adminPassword (captcha on login
  * must be off for the run). The defaults match the data set of PKP's
@@ -134,6 +135,20 @@ describe('Article Timeline plugin', function() {
 		});
 	});
 
+	it('Refuses a date format that shows no date', function() {
+		login(adminUser, adminPassword);
+		openPluginsTab();
+		openSettings();
+		cy.get(settingsForm + ' input[name="dateFormat"]').clear().type('H:i');
+		cy.get(settingsForm + ' button[id^="submitFormButton-"]').click({force: true});
+		waitJQuery();
+		// The form comes back with the message instead of closing, and the stored format is kept.
+		cy.get(settingsForm).should('contain', 'Enter a PHP date format that shows a day, month or year');
+		cy.get(settingsForm + ' input[name="dateFormat"]').should('have.value', 'H:i');
+		openSettings();
+		cy.get(settingsForm + ' input[name="dateFormat"]').invoke('val').should('not.equal', 'H:i');
+	});
+
 	// One save per test: the Plugins tab is loaded once per test (see openPluginsTab).
 	const usePosition = (position) => {
 		login(adminUser, adminPassword);
@@ -158,5 +173,23 @@ describe('Article Timeline plugin', function() {
 	it('Puts the timeline above the abstract', function() {
 		usePosition('main');
 		cy.get('.article-timeline-main').should('have.length', 1).next().should('have.class', 'abstract');
+		cy.get('.article-timeline-main time.article-timeline-date').each(($time) => {
+			expect($time.attr('datetime')).to.match(/^\d{4}-\d{2}-\d{2}$/);
+		});
+	});
+
+	it('Fits a phone-sized screen', function() {
+		cy.viewport(320, 640);
+		visitArticle();
+		cy.get('.article-timeline-main').should('be.visible');
+		cy.document().then((doc) => {
+			const timeline = doc.querySelector('.article-timeline-main');
+			// No entry is cut off by the list's overflow clipping, and the page does not scroll sideways.
+			timeline.querySelectorAll('.article-timeline-entry').forEach((entry) => {
+				expect(entry.getBoundingClientRect().right).to.be.at.most(timeline.getBoundingClientRect().right + 1);
+				expect(entry.getBoundingClientRect().left).to.be.at.least(timeline.getBoundingClientRect().left - 1);
+			});
+			expect(doc.documentElement.scrollWidth).to.be.at.most(doc.documentElement.clientWidth);
+		});
 	});
 });
