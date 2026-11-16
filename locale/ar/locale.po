@@ -72,5 +72,17 @@ msgstr ""
 "لا تظهر التواريخ المحددة في صفحة المقالة، لكنها تبقى معتمدة عند احتساب "
 "التواريخ الأخرى: فتاريخ القبول المخفي يبقى يمنع أن يأتي تاريخ المراجعة بعده."
 
+msgid "plugins.generic.articleTimeline.settings.revisedUploads"
+msgstr "تاريخ التنقيح"
+
+msgid "plugins.generic.articleTimeline.settings.countEditorUploads"
+msgstr "احتساب ملفات التنقيح التي يرفعها المحررون أيضًا"
+
+msgid "plugins.generic.articleTimeline.settings.countEditorUploads.desc"
+msgstr ""
+"تُحتسب افتراضيًا ملفات التنقيح التي يرفعها المؤلف فقط. فعّل هذا الخيار إذا كان "
+"المحررون يرفعون التنقيحات نيابةً عن المؤلفين (كتلك المرسلة بالبريد الإلكتروني): "
+"عندها يُحتسب كل ملف في قسم التنقيحات بمرحلة التحكيم أيًّا كان من رفعه."
+
 msgid "plugins.generic.articleTimeline.settings.saved"
 msgstr "تم حفظ الإعدادات."

@@ -34,6 +34,7 @@ class ArticleTimelinePlugin extends GenericPlugin
     public const SETTING_POSITION = 'position';
     public const SETTING_DATE_FORMAT = 'dateFormat';
     public const SETTING_HIDDEN_DATES = 'hiddenDates';
+    public const SETTING_COUNT_EDITOR_UPLOADS = 'countEditorUploads';
 
     /** The timeline dates, in display order (also the locale key suffixes) */
     public const DATES = ['received', 'revised', 'accepted', 'online'];
@@ -176,7 +177,11 @@ class ArticleTimelinePlugin extends GenericPlugin
         }
 
         $this->rendered = true;
-        $entries = $this->getTimelineEntries($article, $this->getHiddenDates($context->getId()));
+        $entries = $this->getTimelineEntries(
+            $article,
+            $this->getHiddenDates($context->getId()),
+            (bool) $this->getSetting($context->getId(), self::SETTING_COUNT_EDITOR_UPLOADS)
+        );
         if ($entries === []) {
             return false;
         }
@@ -291,12 +296,14 @@ class ArticleTimelinePlugin extends GenericPlugin
      * and its acceptance decisions (two to three queries, for the article being viewed only).
      *
      * @param string[] $hidden dates (values of DATES) not to show
+     * @param bool $anyUploader count revision files whoever uploaded them (editors too), not only authors' uploads
      *
      * @return array<int, array{labelKey: string, date: string}> ordered entries
      */
-    protected function getTimelineEntries(PKPSubmission $article, array $hidden = []): array
+    protected function getTimelineEntries(PKPSubmission $article, array $hidden = [], bool $anyUploader = false): array
     {
-        $authorIds = self::authorUserIds($article->getId());
+        // null: no uploader filter
+        $authorIds = $anyUploader ? null : self::authorUserIds($article->getId());
 
         $revisionFiles = $authorIds === [] ? [] : Repo::submissionFile()->getCollector()
             ->filterBySubmissionIds([$article->getId()])

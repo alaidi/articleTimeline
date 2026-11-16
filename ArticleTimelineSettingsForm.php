@@ -10,7 +10,7 @@
  * @ingroup plugins_generic_articleTimeline
  *
  * @brief Settings form for the articleTimeline plugin: display position,
- *   date format and hidden dates.
+ *   date format, hidden dates and whose revision uploads count.
  */
 
 namespace APP\plugins\generic\articleTimeline;
@@ -71,6 +71,10 @@ class ArticleTimelineSettingsForm extends Form
         $this->setData($this->plugin::SETTING_DATE_FORMAT, $dateFormat ?: $this->plugin::DEFAULT_DATE_FORMAT);
         $hidden = $this->plugin->getSetting($context->getId(), $this->plugin::SETTING_HIDDEN_DATES);
         $this->setData($this->plugin::SETTING_HIDDEN_DATES, is_array($hidden) ? $hidden : []);
+        $this->setData(
+            $this->plugin::SETTING_COUNT_EDITOR_UPLOADS,
+            (bool) $this->plugin->getSetting($context->getId(), $this->plugin::SETTING_COUNT_EDITOR_UPLOADS)
+        );
     }
 
     public function readInputData()
@@ -79,10 +83,12 @@ class ArticleTimelineSettingsForm extends Form
             $this->plugin::SETTING_POSITION,
             $this->plugin::SETTING_DATE_FORMAT,
             $this->plugin::SETTING_HIDDEN_DATES,
+            $this->plugin::SETTING_COUNT_EDITOR_UPLOADS,
         ]);
         $this->setData($this->plugin::SETTING_DATE_FORMAT, trim((string) $this->getData($this->plugin::SETTING_DATE_FORMAT)));
         // no box ticked: the field is not posted at all
         $this->setData($this->plugin::SETTING_HIDDEN_DATES, $this->getData($this->plugin::SETTING_HIDDEN_DATES) ?? []);
+        $this->setData($this->plugin::SETTING_COUNT_EDITOR_UPLOADS, (bool) $this->getData($this->plugin::SETTING_COUNT_EDITOR_UPLOADS));
     }
 
     public function fetch($request, $template = null, $display = false)
@@ -102,6 +108,7 @@ class ArticleTimelineSettingsForm extends Form
             'settingPosition' => $this->plugin::SETTING_POSITION,
             'settingDateFormat' => $this->plugin::SETTING_DATE_FORMAT,
             'settingHiddenDates' => $this->plugin::SETTING_HIDDEN_DATES,
+            'settingCountEditorUploads' => $this->plugin::SETTING_COUNT_EDITOR_UPLOADS,
             'defaultPosition' => $this->plugin::DEFAULT_POSITION,
             'defaultDateFormat' => $this->plugin::DEFAULT_DATE_FORMAT,
         ]);
@@ -129,6 +136,12 @@ class ArticleTimelineSettingsForm extends Form
             $context->getId(),
             $this->plugin::SETTING_HIDDEN_DATES,
             array_values($this->getData($this->plugin::SETTING_HIDDEN_DATES))
+        );
+        $this->plugin->updateSetting(
+            $context->getId(),
+            $this->plugin::SETTING_COUNT_EDITOR_UPLOADS,
+            $this->getData($this->plugin::SETTING_COUNT_EDITOR_UPLOADS),
+            'bool'
         );
 
         parent::execute(...$functionArgs);

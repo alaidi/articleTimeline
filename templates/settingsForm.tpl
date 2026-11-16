@@ -66,6 +66,20 @@
 				translate=false
 			}
 		{/fbvFormSection}
+		{fbvFormSection
+			list=true
+			id="articleTimeline-countEditorUploads-section"
+			label="plugins.generic.articleTimeline.settings.revisedUploads"
+			description="plugins.generic.articleTimeline.settings.countEditorUploads.desc"
+		}
+			{fbvElement
+				type="checkbox"
+				id=$settingCountEditorUploads
+				value="1"
+				checked=$countEditorUploads
+				label="plugins.generic.articleTimeline.settings.countEditorUploads"
+			}
+		{/fbvFormSection}
 	{/fbvFormArea}
 	{fbvFormButtons submitText="common.save" hideCancel=true}
 </form>

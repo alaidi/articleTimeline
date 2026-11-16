@@ -73,5 +73,17 @@ msgstr ""
 "other dates are worked out: a hidden Accepted date still keeps Revised from "
 "coming after it."
 
+msgid "plugins.generic.articleTimeline.settings.revisedUploads"
+msgstr "Revised date"
+
+msgid "plugins.generic.articleTimeline.settings.countEditorUploads"
+msgstr "Also count revision files uploaded by editors"
+
+msgid "plugins.generic.articleTimeline.settings.countEditorUploads.desc"
+msgstr ""
+"By default only revision files an author uploads count. Tick this when editors "
+"upload revisions for authors (for example ones sent by email): every file in the "
+"review stage's Revisions area then counts, whoever uploaded it."
+
 msgid "plugins.generic.articleTimeline.settings.saved"
 msgstr "Settings saved."

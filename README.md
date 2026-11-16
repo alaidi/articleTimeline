@@ -38,7 +38,8 @@ time of the files in the review stage's *Revisions* area:
 - A file an editor or administrator uploads there for the author (for example a
   revision that arrived by email) is **not** counted, because OJS cannot tell it
   apart from an editor's own file. Such an article shows no Revised date unless
-  the author also uploaded one.
+  the author also uploaded one. To count such files, tick **Also count revision
+  files uploaded by editors** in the settings (see below).
 - A file uploaded after the acceptance is ignored, so Revised never follows Accepted.
   Without an acceptance (for example an article imported as published), a file
   uploaded after the day of the first publication is ignored; one uploaded on that
@@ -80,6 +81,11 @@ shows a date rather than the word.
 the article page (none by default). Hiding only affects the display: a hidden
 Accepted date still keeps Revised from coming after it. With every date hidden,
 no timeline is shown.
+
+**Revised date: also count revision files uploaded by editors** — off by default.
+When editors upload revisions for authors, tick it: every file in the review
+stage's *Revisions* area then counts, whoever uploaded it (an editor's own file
+there counts too). The other rules (not after the acceptance, latest round) stay.
 
 Interface strings are available in English and Arabic; the timeline follows the
 page direction (RTL in Arabic). Each date is a `<time datetime="YYYY-MM-DD">`
@@ -135,7 +141,8 @@ See [CONTRIBUTING.md](https://github.com/alaidi/articleTimeline/blob/main/CONTRI
 
 ## Version history
 
-- **1.3.0.0** — "Hide dates" setting: leave any of the four dates off the article page.
+- **1.3.0.0** — "Hide dates" setting: leave any of the four dates off the article page;
+  optional setting to count revision files uploaded by editors for the Revised date.
 - **1.2.1.0** — Stricter date format check (letters that are not format characters
   must be escaped; `U` refused); without an acceptance, Revised is not later than
   the day of publication; abstract detection accepts unquoted classes and `>` in

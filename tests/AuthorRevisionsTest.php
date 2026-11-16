@@ -109,19 +109,19 @@ class AuthorRevisionsTest extends PKPTestCase
     }
 
     /** The Revised date the plugin shows for the test submission, if any */
-    private function revised(): ?string
+    private function revised(bool $anyUploader = false): ?string
     {
         $plugin = new class () extends ArticleTimelinePlugin {
-            public function entries(Submission $article): array
+            public function entries(Submission $article, bool $anyUploader): array
             {
-                return $this->getTimelineEntries($article);
+                return $this->getTimelineEntries($article, [], $anyUploader);
             }
         };
         $article = new Submission();
         $article->setId($this->submissionId);
         $article->setData('publications', LazyCollection::make([]));
 
-        foreach ($plugin->entries($article) as $entry) {
+        foreach ($plugin->entries($article, $anyUploader) as $entry) {
             if ($entry['labelKey'] === 'plugins.generic.articleTimeline.revised') {
                 return $entry['date'];
             }
@@ -179,6 +179,27 @@ class AuthorRevisionsTest extends PKPTestCase
         $this->upload('outsider', '2025-04-03 09:00:00');
 
         $this->assertSame('2025-03-14 09:00:00', $this->revised());
+    }
+
+    public function testEditorUploadsCountWhenTheSettingIsOn(): void
+    {
+        $this->assign('firstAuthor', $this->userGroup(Role::ROLE_ID_AUTHOR));
+        $this->assign('editor', $this->userGroup(Role::ROLE_ID_MANAGER));
+        $this->upload('firstAuthor', '2025-03-14 09:00:00');
+        $this->upload('editor', '2025-04-02 09:00:00');
+        $this->upload('editor', '2025-04-05 09:00:00', SubmissionFile::SUBMISSION_FILE_SUBMISSION);
+
+        $this->assertSame('2025-03-14 09:00:00', $this->revised());
+        $this->assertSame('2025-04-02 09:00:00', $this->revised(true));
+    }
+
+    public function testEditorUploadCountsWithoutAnAuthorParticipantWhenTheSettingIsOn(): void
+    {
+        $this->assign('editor', $this->userGroup(Role::ROLE_ID_MANAGER));
+        $this->upload('editor', '2025-03-14 09:00:00');
+
+        $this->assertNull($this->revised());
+        $this->assertSame('2025-03-14 09:00:00', $this->revised(true));
     }
 
     public function testWithoutAnAuthorParticipantThereIsNoRevisedDate(): void
