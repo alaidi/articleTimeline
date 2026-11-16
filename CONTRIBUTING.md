@@ -11,7 +11,7 @@ theme in use, and steps to reproduce. Errors from `error_log` or the browser con
 
 1. Branch from `main`. The repository root **is** the plugin folder, so `version.xml`
    stays at the root.
-2. Follow the [PKP coding conventions](https://docs.pkp.sfu.ca/dev/documentation/en/coding):
+2. Follow the [PKP coding conventions](https://docs.pkp.sfu.ca/dev/contributors/#code-style):
    namespaced classes (`APP\plugins\generic\articleTimeline`), hooks via `PKP\plugins\Hook`.
 3. Keep `locale/en/locale.po` and `locale/ar/locale.po` in sync: the tests fail when a
    key is missing from either, or when the code uses a key neither defines.

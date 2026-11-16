@@ -4,7 +4,7 @@
  * @file plugins/generic/articleTimeline/tests/ArticleTimelinePluginTest.php
  *
  * Copyright (c) 2026 Abdul Hadi Alaidi
- * Distributed under the GNU GPL v3. For full terms see the file docs/COPYING.
+ * Distributed under the GNU GPL v3. For full terms see the file LICENSE.
  *
  * @class ArticleTimelinePluginTest
  *
@@ -133,6 +133,58 @@ class ArticleTimelinePluginTest extends PKPTestCase
         }
     }
 
+    public function testAttributeValuesMayHoldAngleBrackets(): void
+    {
+        foreach ([
+            '<section data-x="a > b" class="item abstract">',
+            "<section title='1>0' class=\"item abstract\" data-y=\"<p>\">",
+            '<section class="item abstract" data-x="a>b">',
+            '<div aria-label="x>y" class=\'article-abstract\'>',
+        ] as $tag) {
+            $page = '<p>before</p>' . $tag . 'A';
+            $this->assertSame('<p>before</p>' . self::TIMELINE . $tag . 'A', ArticleTimelinePlugin::insertBeforeAbstract($page, self::TIMELINE), $tag);
+        }
+        // a class attribute quoted inside another attribute's value is not the element's class
+        $this->assertNull(ArticleTimelinePlugin::insertBeforeAbstract('<section data-x=\' class="abstract"\'>A', self::TIMELINE));
+        $this->assertNull(ArticleTimelinePlugin::insertBeforeAbstract('<section data-x="> class=abstract">A', self::TIMELINE));
+    }
+
+    public function testUnquotedClass(): void
+    {
+        foreach (['<section class=abstract>', '<section class=item-abstract id=a>', "<div class=abstract\n>"] as $tag) {
+            $this->assertSame(self::TIMELINE . $tag . 'A', ArticleTimelinePlugin::insertBeforeAbstract($tag . 'A', self::TIMELINE), $tag);
+        }
+        foreach (['<section class=abstracts>', '<section class=abstract-wrapper>', '<section class=item id=abstract>'] as $tag) {
+            $this->assertNull(ArticleTimelinePlugin::insertBeforeAbstract($tag . 'A', self::TIMELINE), $tag);
+        }
+    }
+
+    /** Abstract markup of the themes in use: default, journalPulse, individualizeTheme */
+    public function testThemeMarkup(): void
+    {
+        $default = '<section class="item keywords"><h2 class="label">Keywords:</h2>k</section>'
+            . "\n\t\t\t\t<section class=\"item abstract\">\n\t\t\t\t\t<h2 class=\"label\">Abstract</h2>\n\t\t\t\t\t<p>A</p>\n\t\t\t\t</section>";
+        $individualize = '<div class="article-abstract-galleys"><a class="obj_galley_link pdf" href="x">PDF</a></div>'
+            . '<section class="article-section article-section-abstract"><h2>Abstract</h2><p>A</p></section>';
+
+        $this->assertSame(
+            str_replace('<section class="item abstract">', self::TIMELINE . '<section class="item abstract">', $default),
+            ArticleTimelinePlugin::insertBeforeAbstract($default, self::TIMELINE)
+        );
+        $this->assertSame(
+            str_replace('<section class="article-section', self::TIMELINE . '<section class="article-section', $individualize),
+            ArticleTimelinePlugin::insertBeforeAbstract($individualize, self::TIMELINE)
+        );
+    }
+
+    public function testInsertionLeavesTheRestOfThePageByteForByte(): void
+    {
+        $before = "<!DOCTYPE html>\n<html dir=\"rtl\"><body><p>ü &amp; <b>x</b> <!-- c --></p>\r\n";
+        $after = "<section   CLASS='item abstract'  >A</section><script>if (a > b) {}</script></body></html>";
+
+        $this->assertSame($before . self::TIMELINE . $after, ArticleTimelinePlugin::insertBeforeAbstract($before . $after, self::TIMELINE));
+    }
+
     public function testIgnoresElementsThatAreNotTheAbstract(): void
     {
         foreach ([
@@ -194,6 +246,33 @@ class ArticleTimelinePluginTest extends PKPTestCase
         $this->assertSame(1, substr_count($once, self::TIMELINE));
     }
 
+    public function testOutputFilterMovesTheTimelineOnceAndOnlyInThePageHoldingIt(): void
+    {
+        $filter = ArticleTimelinePlugin::aboveAbstractFilter(self::TIMELINE);
+        $page = '<section class="item abstract">A</section>' . self::TIMELINE;
+        $unrelated = '<div class="cmp_notification">n</div><section class="item abstract">other</section>';
+
+        // outputs fetched before the page (blocks, other templates) pass unchanged
+        $this->assertSame($unrelated, $filter($unrelated));
+        $this->assertSame('<p>no abstract</p>' . self::TIMELINE, $filter('<p>no abstract</p>' . self::TIMELINE));
+
+        $moved = $filter($page);
+        $this->assertSame(self::TIMELINE . '<section class="item abstract">A</section>', $moved);
+
+        // after that, nothing is touched again: no second copy, no other output changed
+        $this->assertSame($page, $filter($page));
+        $this->assertSame($moved, $filter($moved));
+        $this->assertSame($unrelated . self::TIMELINE, $filter($unrelated . self::TIMELINE));
+    }
+
+    public function testOutputFilterOfAnotherRequestStartsOver(): void
+    {
+        $page = '<section class="item abstract">A</section>' . self::TIMELINE;
+        ArticleTimelinePlugin::aboveAbstractFilter(self::TIMELINE)($page);
+
+        $this->assertSame(self::TIMELINE . '<section class="item abstract">A</section>', ArticleTimelinePlugin::aboveAbstractFilter(self::TIMELINE)($page));
+    }
+
     public function testStoredPositionsAreKept(): void
     {
         foreach (ArticleTimelinePlugin::POSITIONS as $position) {
@@ -223,11 +302,37 @@ class ArticleTimelinePluginTest extends PKPTestCase
 
     public function testDateFormatValidation(): void
     {
-        foreach (['M.j, Y', 'd/m/Y', 'F j, Y', 'Y', 'j F Y', 'Y-m-d H:i', 'l, \\t\\h\\e jS \\o\\f F'] as $format) {
+        foreach ([
+            'M.j, Y', 'd/m/Y', 'F j, Y', 'Y', 'j F Y', 'Y-m-d H:i', 'D, d M Y', 'n/j/y', 'o', 'X', 'x', 'c', 'r',
+            'l, \\t\\h\\e jS \\o\\f F', // escaped words
+            '\\\\Y',                    // an escaped backslash, then a year
+            'Y年n月j日',                 // letters outside A-Z are printed as they are
+            'd.m.Y \\a\\t H:i',
+        ] as $format) {
             $this->assertTrue(ArticleTimelinePlugin::isValidDateFormat($format), $format);
         }
-        foreach (['', '   ', 'H:i', 'D', 'l', '\\Y', '---', null, 12, ['Y']] as $format) {
+        foreach ([
+            '', '   ', '---', 'H:i', 'D', 'l', 'N', 'z', 'W',  // no day of the month, month or year
+            '\\Y', '\\d\\/\\m',                          // every date character escaped
+            'U', 'Y U', 'd/m/Y (U)',                     // a Unix timestamp
+            'Week of Y', 'Published Y', 'Y-m-d q', 'Vol. Y', // letters PHP would print as-is
+            // (a word made only of format characters, like "Today", is a format PHP reads)
+            'Y\\',                                       // a backslash that escapes nothing
+            "Y\xff",                                     // not UTF-8
+            null, 12, ['Y'],
+        ] as $format) {
             $this->assertFalse(ArticleTimelinePlugin::isValidDateFormat($format), var_export($format, true));
+        }
+    }
+
+    public function testEveryCharacterOfAValidFormatIsADateCharacterOfPhp(): void
+    {
+        // a letter PHP does not know as a format character is printed as it is
+        foreach (str_split(ArticleTimelinePlugin::DATE_FORMAT_CHARACTERS) as $character) {
+            $this->assertNotSame($character, date($character, 1733392800), $character);
+        }
+        foreach (array_diff(array_merge(range('a', 'z'), range('A', 'Z')), str_split(ArticleTimelinePlugin::DATE_FORMAT_CHARACTERS)) as $character) {
+            $this->assertSame($character, date($character, 1733392800), $character);
         }
     }
 
@@ -278,6 +383,57 @@ class ArticleTimelinePluginTest extends PKPTestCase
             ['accepted' => '2025-05-11 12:00:00'],
             $this->entries($this->article(null), $this->files('2025-05-13 08:00:00'), $this->decisions('2025-05-11 12:00:00'))
         );
+    }
+
+    public function testWithoutAcceptanceRevisionsAfterGoingOnlineAreIgnored(): void
+    {
+        $online = [[Submission::STATUS_PUBLISHED, '2025-06-01']];
+
+        $this->assertSame(
+            ['revised' => '2025-05-20 09:00:00', 'online' => '2025-06-01'],
+            $this->entries($this->article(null, $online), $this->files('2025-05-20 09:00:00', '2025-06-02 08:00:00'), [])
+        );
+        $this->assertSame(
+            ['online' => '2025-06-01'],
+            $this->entries($this->article(null, $online), $this->files('2025-06-02 08:00:00'), [])
+        );
+    }
+
+    public function testRevisionOnThePublicationDayCounts(): void
+    {
+        // datePublished is a day without a time
+        $this->assertSame(
+            ['revised' => '2025-06-01 23:59:59', 'online' => '2025-06-01'],
+            $this->entries($this->article(null, [[Submission::STATUS_PUBLISHED, '2025-06-01']]), $this->files('2025-06-01 23:59:59'), [])
+        );
+    }
+
+    public function testAcceptanceNotOnlineLimitsTheRevision(): void
+    {
+        // an article accepted after it went online (data imported or edited by hand)
+        $this->assertSame(
+            ['revised' => '2025-06-10 09:00:00', 'accepted' => '2025-06-15 12:00:00', 'online' => '2025-06-01'],
+            $this->entries(
+                $this->article(null, [[Submission::STATUS_PUBLISHED, '2025-06-01']]),
+                $this->files('2025-06-10 09:00:00', '2025-06-20 09:00:00'),
+                $this->decisions('2025-06-15 12:00:00')
+            )
+        );
+    }
+
+    public function testRevisionOnTheAcceptanceSecondCountsButNotLater(): void
+    {
+        $this->assertSame('2025-05-11 12:00:00', ArticleTimelinePlugin::latestRevision(['2025-05-11 12:00:00', '2025-05-11 12:00:01'], '2025-05-11 12:00:00'));
+    }
+
+    public function testLatestRevisionWithMissingDates(): void
+    {
+        $this->assertNull(ArticleTimelinePlugin::latestRevision([], null));
+        $this->assertNull(ArticleTimelinePlugin::latestRevision([], '2025-06-01'));
+        $this->assertNull(ArticleTimelinePlugin::latestRevision(['2025-06-02 00:00:00'], '2025-06-01'));
+        $this->assertSame('2025-07-01 00:00:00', ArticleTimelinePlugin::latestRevision(['2025-06-02 00:00:00', '2025-07-01 00:00:00'], null));
+        // neither acceptance nor online: every revision counts
+        $this->assertSame(['revised' => '2026-01-01 00:00:00'], $this->entries($this->article(null, [[Submission::STATUS_QUEUED, null]]), $this->files('2025-01-01 00:00:00', '2026-01-01 00:00:00'), $this->decisions(null)));
     }
 
     public function testLastOfSeveralAcceptDecisions(): void

@@ -2,7 +2,7 @@
  * @file cypress/tests/functional/ArticleTimeline.cy.js
  *
  * Copyright (c) 2026 Abdul Hadi Alaidi
- * Distributed under the GNU GPL v3. For full terms see the file docs/COPYING.
+ * Distributed under the GNU GPL v3. For full terms see the file LICENSE.
  *
  * Functional tests: the three display positions in the settings, and where each
  * one puts the timeline on an article page; the date format check; the layout on

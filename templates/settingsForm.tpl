@@ -2,7 +2,7 @@
  * plugins/generic/articleTimeline/templates/settingsForm.tpl
  *
  * Copyright (c) 2026 Abdul Hadi Alaidi
- * Distributed under the GNU GPL v3. For full terms see the file docs/COPYING.
+ * Distributed under the GNU GPL v3. For full terms see the file LICENSE.
  *}
 
 <script type="text/javascript">

@@ -4,7 +4,7 @@
  * @file plugins/generic/articleTimeline/ArticleTimelinePlugin.php
  *
  * Copyright (c) 2026 Abdul Hadi Alaidi
- * Distributed under the GNU GPL v3. For full terms see the file docs/COPYING.
+ * Distributed under the GNU GPL v3. For full terms see the file LICENSE.
  *
  * @class ArticleTimelinePlugin
  * @ingroup plugins_generic_articleTimeline
@@ -192,27 +192,54 @@ class ArticleTimelinePlugin extends GenericPlugin
         // No theme hook sits above the abstract, so move the timeline there in the final page output.
         // Pages without an abstract section keep it under, where the hook put it.
         if ($position === self::POSITION_MAIN) {
-            $moved = false;
-            $templateMgr->registerFilter('output', function (string $source) use ($html, &$moved): string {
-                if ($moved) {
-                    return $source;
-                }
-                $result = self::moveAboveAbstract($source, $html);
-                $moved = $result !== null;
-                return $result ?? $source;
-            });
+            $templateMgr->registerFilter('output', self::aboveAbstractFilter($html));
         }
 
         return false;
     }
 
     /**
-     * Whether a date format shows a date: a non-empty string with at least one
-     * unescaped day-of-month, month or year character (time-only formats like "H:i" fail).
+     * An output filter that moves $html above the abstract in the first output holding both,
+     * and leaves every other output (other templates, later fetches) as it is.
+     *
+     * @return callable(string): string
+     */
+    public static function aboveAbstractFilter(string $html): callable
+    {
+        $moved = false;
+        return function (string $source) use ($html, &$moved): string {
+            if ($moved) {
+                return $source;
+            }
+            $result = self::moveAboveAbstract($source, $html);
+            $moved = $result !== null;
+            return $result ?? $source;
+        };
+    }
+
+    /** Letters PHP's date() reads as format characters (X and x since PHP 8.2) */
+    public const DATE_FORMAT_CHARACTERS = 'dDjlNSwzWFmMntLoXxYyaABgGhHisuveIOPpTZcrU';
+
+    /** Format characters that show a day of the month, a month or a year */
+    public const CALENDAR_DATE_CHARACTERS = 'djFmMnoXxYycr';
+
+    /**
+     * Whether a date format shows a calendar date. Letters other than format characters must be
+     * escaped with a backslash, as PHP would otherwise print them as-is; a format needs at least
+     * one day, month or year character ("H:i" fails), and the Unix timestamp "U" is refused.
      */
     public static function isValidDateFormat(mixed $format): bool
     {
-        return is_string($format) && preg_match('/(?<!\\\\)[djFmMnoXxYycrU]/', $format) === 1;
+        // escaped characters (a backslash and the next character) are printed as they are
+        $unescaped = is_string($format) ? preg_replace('/\\\\./su', '', $format) : null;
+        if ($unescaped === null || str_ends_with($unescaped, '\\')) {
+            return false;
+        }
+        preg_match_all('/[a-z]/i', $unescaped, $letters);
+        $letters = $letters[0];
+        return array_diff($letters, str_split(self::DATE_FORMAT_CHARACTERS)) === []
+            && array_intersect($letters, str_split(self::CALENDAR_DATE_CHARACTERS)) !== []
+            && !in_array('U', $letters, true);
     }
 
     /**
@@ -232,16 +259,21 @@ class ArticleTimelinePlugin extends GenericPlugin
     /**
      * Insert $html right before the opening tag of the first abstract block of $source:
      * a <section> or <div> with a class "abstract" or "…-abstract" (default theme: "item abstract",
-     * individualizeTheme: "article-section-abstract"), in any attribute order and quote style.
+     * individualizeTheme: "article-section-abstract"), in any attribute order, with the class
+     * value in double, single or no quotes, and other attribute values that may hold ">".
      *
      * A regex on the opening tag, not a DOM parser: re-serialising the whole page would alter its markup.
      *
-     * @return ?string the new page html, or null when no abstract block was found
+     * @return ?string the new page html, or null when no abstract block was found (or the regex failed)
      */
     public static function insertBeforeAbstract(string $source, string $html): ?string
     {
+        $attributes = '(?:[^>"\']|"[^"]*"|\'[^\']*\')*?'; // a quoted value is skipped whole, ">" included
+        $abstract = '(?:[\w-]+-)?abstract';
         $result = preg_replace_callback(
-            '/<(?:section|div)(?=\s)[^>]*?\sclass\s*=\s*(["\'])[^"\'>]*?(?<![\w-])(?:[\w-]+-)?abstract(?![\w-])[^"\'>]*\1[^>]*>/i',
+            '/<(?:section|div)(?=\s)' . $attributes . '\sclass\s*=\s*'
+                . '(?:(["\'])(?:(?!\1).)*?(?<![\w-])' . $abstract . '(?![\w-])(?:(?!\1).)*\1|' . $abstract . '(?=[\s>]))'
+                . $attributes . '>/is',
             fn (array $match) => $html . $match[0],
             $source,
             1,
@@ -258,10 +290,7 @@ class ArticleTimelinePlugin extends GenericPlugin
      */
     protected function getTimelineEntries(PKPSubmission $article): array
     {
-        $authorIds = StageAssignment::withSubmissionIds([$article->getId()])
-            ->withRoleIds([Role::ROLE_ID_AUTHOR])
-            ->pluck('stage_assignments.user_id')
-            ->all();
+        $authorIds = self::authorUserIds($article->getId());
 
         $revisionFiles = $authorIds === [] ? [] : Repo::submissionFile()->getCollector()
             ->filterBySubmissionIds([$article->getId()])
@@ -278,6 +307,25 @@ class ArticleTimelinePlugin extends GenericPlugin
             ->getMany();
 
         return self::timelineEntries($article, $revisionFiles, $acceptDecisions);
+    }
+
+    /**
+     * The users taking part in a submission as authors: every participant in a user group with
+     * the Author role. OJS 3.5 assigns a participant to the whole submission (stage_assignments
+     * has no stage), so this does not depend on the stages the Author group can see.
+     * Contributors without a user account, and authors removed from the participants, are
+     * not included.
+     *
+     * @return int[]
+     */
+    public static function authorUserIds(int $submissionId): array
+    {
+        return StageAssignment::withSubmissionIds([$submissionId])
+            ->withRoleIds([Role::ROLE_ID_AUTHOR])
+            ->pluck('stage_assignments.user_id')
+            ->unique()
+            ->values()
+            ->all();
     }
 
     /**
@@ -305,9 +353,8 @@ class ArticleTimelinePlugin extends GenericPlugin
         );
 
         $accepted = max($dates($acceptDecisions, 'dateDecided') ?: [null]);
-        $revisions = $dates($revisionFiles, 'createdAt');
-        $revised = max(($accepted ? array_filter($revisions, fn ($date) => $date <= $accepted) : $revisions) ?: [null]);
         $online = min($dates($article->getPublishedPublications(), 'datePublished') ?: [null]);
+        $revised = self::latestRevision($dates($revisionFiles, 'createdAt'), $accepted ?? $online);
 
         $entries = [];
         foreach ([
@@ -321,6 +368,22 @@ class ArticleTimelinePlugin extends GenericPlugin
             }
         }
         return $entries;
+    }
+
+    /**
+     * The latest of the revision dates that is not after $limit (all of them without a limit).
+     *
+     * Dates are compared as "Y-m-d H:i:s" strings, a revision cut to the limit's length: against
+     * a day without a time ("Y-m-d", as datePublished is stored), a revision of that day counts.
+     *
+     * @param string[] $revisions
+     */
+    public static function latestRevision(array $revisions, ?string $limit): ?string
+    {
+        if ($limit !== null) {
+            $revisions = array_filter($revisions, fn (string $date) => substr($date, 0, strlen($limit)) <= $limit);
+        }
+        return $revisions === [] ? null : max($revisions);
     }
 
     /**

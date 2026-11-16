@@ -2,7 +2,7 @@
  * plugins/generic/articleTimeline/templates/timelineSidebar.tpl
  *
  * Copyright (c) 2026 Abdul Hadi Alaidi
- * Distributed under the GNU GPL v3. For full terms see the file docs/COPYING.
+ * Distributed under the GNU GPL v3. For full terms see the file LICENSE.
  *
  * Editorial timeline as a sidebar item, injected via
  * Templates::Article::Details (follows the .item/.label/.value pattern
