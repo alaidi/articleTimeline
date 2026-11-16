@@ -52,6 +52,10 @@ time of the files in the review stage's *Revisions* area:
 
 Per journal, under Settings → Website → Plugins → Article Timeline → Settings.
 
+![The plugin's settings form: display position, date format, hide dates and the Revised date option](https://raw.githubusercontent.com/alaidi/articleTimeline/main/docs/settings.png)
+
+*The settings form, with Received hidden and editors' revision uploads counted.*
+
 **Display position**
 
 | Option | Where it appears |
@@ -105,7 +109,9 @@ Or copy the `articleTimeline` folder into `plugins/generic/` and run
 `php tools/upgrade.php upgrade`.
 
 **Upgrading** keeps the saved position and date format: the setting names and
-stored values (`main`, `mainBelow`, `sidebar`) are unchanged since 1.0.
+stored values (`main`, `mainBelow`, `sidebar`) are unchanged since 1.0. The
+settings added in 1.3.0.0 (Hide dates, editors' revision uploads) start off, so
+article pages look the same until you change them.
 
 Requires OJS 3.5.0 or later. Tested on OJS 3.5.0-3 (PHP 8.5, MySQL 8). PKP's CI
 runs the tests on OJS `stable-3_5_0` with PHP 8.2/8.3 and MySQL/PostgreSQL.
